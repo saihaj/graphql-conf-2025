@@ -29,64 +29,87 @@ export function PostCard({ post }: { post: postCard$key }) {
     post,
   );
 
+  const [commitLike] = useMutation<postCardLikeMutation>(graphql`
+    mutation postCardLikeMutation($id: ID!) @raw_response_type {
+      likePost(input: { id: $id }) {
+        post {
+          likeCount
+          likedByMe
+        }
+      }
+    }
+  `);
+
+  const [commitUnlike] = useMutation<postCardUnlikeMutation>(graphql`
+    mutation postCardUnlikeMutation($id: ID!) @raw_response_type {
+      unlikePost(input: { id: $id }) {
+        post {
+          likeCount
+          likedByMe
+        }
+      }
+    }
+  `);
+
   const { user } = useAuth();
   const avatar = createAvatar(notionistsNeutral, {
     seed: user?.id,
   });
 
   const handleLike = () => {
-    // console.log('post', data);
-    // if (data.likedByMe) {
-    //   commitUnlike({
-    //     variables: {
-    //       id: data.id,
-    //     },
-    //     onCompleted: response => {
-    //       toast(
-    //         !response.unlikePost.post.likedByMe
-    //           ? 'Post unliked!'
-    //           : 'Post liked!',
-    //       );
-    //     },
-    //     optimisticResponse: {
-    //       unlikePost: {
-    //         post: {
-    //           id: data.__id,
-    //           likeCount: data.likeCount - 1,
-    //           likedByMe: true,
-    //         },
-    //       },
-    //     },
-    //     onError: err => {
-    //       toast.error('Failed to unlike', {
-    //         description: err.message,
-    //       });
-    //     },
-    //   });
-    //   return;
-    // }
-    // commitLike({
-    //   variables: {
-    //     id: data.id,
-    //   },
-    //   onCompleted: response => {
-    //     toast(response.likePost.post.id ? 'Post liked!' : 'Post unliked');
-    //   },
-    //   optimisticResponse: {
-    //     likePost: {
-    //       post: {
-    //         id: data.id,
-    //         likeCount: data.likeCount + 1,
-    //         likedByMe: true,
-    //       },
-    //     },
-    //   },
-    //   onError: err => {
-    //     toast.error('Failed to like', {
-    //       description: err.message,
-    //     });
-    //   },
-    // });
+    console.log('post', data);
+    if (data.likedByMe) {
+      commitUnlike({
+        variables: {
+          id: data.id,
+        },
+        onCompleted: response => {
+          toast(
+            !response.unlikePost.post.likedByMe
+              ? 'Post unliked!'
+              : 'Post liked!',
+          );
+        },
+        optimisticResponse: {
+          unlikePost: {
+            post: {
+              id: data.__id,
+              likeCount: data.likeCount - 1,
+              likedByMe: true,
+            },
+          },
+        },
+        onError: err => {
+          toast.error('Failed to unlike', {
+            description: err.message,
+          });
+        },
+      });
+      return;
+    }
+
+    commitLike({
+      variables: {
+        id: data.id,
+      },
+      onCompleted: response => {
+        toast(response.likePost.post.id ? 'Post liked!' : 'Post unliked');
+      },
+      optimisticResponse: {
+        likePost: {
+          post: {
+            id: data.id,
+            likeCount: data.likeCount + 1,
+            likedByMe: true,
+          },
+        },
+      },
+      onError: err => {
+        toast.error('Failed to like', {
+          description: err.message,
+        });
+      },
+    });
   };
 
   const formatDate = (dateString: string) => {
