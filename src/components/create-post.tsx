@@ -8,12 +8,28 @@ import { notionistsNeutral } from '@dicebear/collection';
 import { createAvatar } from '@dicebear/core';
 import type React from 'react';
 import { useState } from 'react';
+import { graphql, useMutation } from 'react-relay';
+import { toast } from 'sonner';
+import { createPostMutation } from './__generated__/createPostMutation.graphql';
 import { useAuth } from './auth-provider';
 
-export function CreatePost() {
+export function CreatePost({ connectionId }: { connectionId: string }) {
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
   const { user } = useAuth();
+
+  const [commit] = useMutation<createPostMutation>(graphql`
+    mutation createPostMutation($text: String!, $connections: [ID!]!) {
+      createPost(input: { text: $text }) {
+        postEdge @prependEdge(connections: $connections) {
+          node {
+            id
+            ...postCard
+          }
+        }
+      }
+    }
+  `);
 
   const avatar = createAvatar(notionistsNeutral, {
     seed: user?.id,
@@ -32,6 +48,22 @@ export function CreatePost() {
       setError('Post content cannot exceed 280 characters');
       return;
     }
+
+    commit({
+      variables: {
+        connections: [connectionId],
+        text: content.trim(),
+      },
+      onCompleted: () => {
+        setContent('');
+      },
+      onError: err => {
+        toast.error('Failed to create post', {
+          description: err.message,
+        });
+        setError(err.message || 'Failed to create post');
+      },
+    });
   };
 
   const characterCount = content.length;
