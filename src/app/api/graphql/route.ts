@@ -1,0 +1,174 @@
+import { Context, createContext } from '@/api/context';
+import { resolvers } from '@/api/resolvers';
+import { createSchema, createYoga } from 'graphql-yoga';
+import { useCookies } from '@whatwg-node/server-plugin-cookies';
+
+export const typeDefs = /* GraphQL */ `
+  interface Node {
+    id: ID!
+  }
+
+  type User implements Node {
+    id: ID!
+    username: String!
+    name: String
+    bio: String
+    followers(
+      first: Int
+      after: String
+      last: Int
+      before: String
+    ): UserConnection!
+    following(
+      first: Int
+      after: String
+      last: Int
+      before: String
+    ): UserConnection!
+    posts(first: Int, after: String, last: Int, before: String): PostConnection!
+    followingMe: Boolean! # convenience
+  }
+
+  type Post implements Node {
+    id: ID!
+    author: User!
+    text: String!
+    createdAt: String!
+    replyTo: Post
+    likeCount: Int!
+    likedByMe: Boolean!
+    replies(
+      first: Int
+      after: String
+      last: Int
+      before: String
+    ): PostConnection!
+  }
+
+  type Like implements Node {
+    id: ID!
+    user: User!
+    post: Post!
+    createdAt: String!
+  }
+
+  type Follow implements Node {
+    id: ID!
+    follower: User!
+    following: User!
+    createdAt: String!
+  }
+
+  type AuthPayload {
+    token: String!
+    user: User!
+  }
+
+  type Query {
+    node(id: ID!): Node
+    me: User
+    user(username: String!): User
+    Post(id: ID!): Post
+    timeline(
+      first: Int
+      after: String
+      last: Int
+      before: String
+    ): PostConnection!
+    userPosts(
+      userId: ID!
+      first: Int
+      after: String
+      last: Int
+      before: String
+    ): PostConnection!
+    searchPosts(query: String!, first: Int, after: String): PostConnection!
+  }
+
+  type Mutation {
+    signUp(email: String!, username: String!, password: String!): AuthPayload
+    signIn(email: String!, password: String!): AuthPayload
+    createPost(input: CreatePostInput!): CreatePostPayload!
+    likePost(input: LikePostInput!): LikePostPayload!
+    unlikePost(input: UnlikePostInput!): UnlikePostPayload!
+  }
+
+  type UserEdge {
+    cursor: String!
+    node: User!
+  }
+  type UserConnection {
+    edges: [UserEdge!]!
+    pageInfo: PageInfo!
+  }
+
+  type PostEdge {
+    cursor: String!
+    node: Post!
+  }
+  type PostConnection {
+    edges: [PostEdge!]!
+    pageInfo: PageInfo!
+  }
+
+  type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+  }
+
+  type CreatePostPayload {
+    post: Post!
+    postEdge: PostEdge!
+    clientMutationId: String
+  }
+
+  input CreatePostInput {
+    text: String!
+    replyToId: ID
+    clientMutationId: String
+  }
+
+  type LikePostPayload {
+    post: Post!
+    postEdge: PostEdge!
+    clientMutationId: String
+  }
+
+  input LikePostInput {
+    id: ID!
+    clientMutationId: String
+  }
+
+  type UnlikePostPayload {
+    post: Post!
+    postEdge: PostEdge!
+    clientMutationId: String
+  }
+
+  input UnlikePostInput {
+    id: ID!
+    clientMutationId: String
+  }
+`;
+
+const { handleRequest } = createYoga<Context>({
+  schema: createSchema({
+    typeDefs,
+    resolvers,
+  }),
+  plugins: [useCookies()],
+  context: async ctx => {
+    return createContext(ctx);
+  },
+  maskedErrors: false,
+  graphqlEndpoint: '/api/graphql',
+  fetchAPI: { Response },
+});
+
+export {
+  handleRequest as GET,
+  handleRequest as POST,
+  handleRequest as OPTIONS,
+};
