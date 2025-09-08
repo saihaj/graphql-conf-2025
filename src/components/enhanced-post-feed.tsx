@@ -2,13 +2,30 @@
 
 import { PostCard } from './post-card';
 import { CreatePost } from './create-post';
+import { graphql, PreloadedQuery, usePreloadedQuery } from 'react-relay';
+import { enhancedPostFeedQuery } from './__generated__/enhancedPostFeedQuery.graphql';
 
-export function EnhancedPostFeed() {
-  const response = {
-    timeline: {
-      edges: [],
-    },
-  };
+export function EnhancedPostFeed({
+  queryRef,
+}: {
+  queryRef: PreloadedQuery<enhancedPostFeedQuery>;
+}) {
+  const response = usePreloadedQuery<enhancedPostFeedQuery>(
+    graphql`
+      query enhancedPostFeedQuery($first: Int!) {
+        timeline(first: $first) @connection(key: "postCardFragment_timeline") {
+          __id
+          edges {
+            node {
+              id
+              ...postCard
+            }
+          }
+        }
+      }
+    `,
+    queryRef,
+  );
 
   if (response.timeline.edges.length === 0) {
     return (

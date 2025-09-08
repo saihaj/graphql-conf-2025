@@ -1,9 +1,25 @@
 'use client';
+import enhancedPostFeedQueryNode, {
+  enhancedPostFeedQuery,
+} from '@/components/__generated__/enhancedPostFeedQuery.graphql';
 import { EnhancedPostFeed } from '@/components/enhanced-post-feed';
 import { SuggestedUsers } from '@/components/suggested-users';
 import { TrendingSidebar } from '@/components/trending-sidebar';
+import { SerializablePreloadedQuery } from '@/relay/load-serializeable-query';
+import useSerializablePreloadedQuery from '@/relay/use-serializable-preloaded-query';
+import { useRelayEnvironment } from 'react-relay';
 
-export function HomePageLayout() {
+export function HomePageLayout({
+  preloadedQuery,
+}: {
+  preloadedQuery: SerializablePreloadedQuery<
+    typeof enhancedPostFeedQueryNode,
+    enhancedPostFeedQuery
+  >;
+}) {
+  const environment = useRelayEnvironment();
+  const queryRef = useSerializablePreloadedQuery(environment, preloadedQuery);
+
   return (
     <>
       <div className="flex-1 border-r border-border">
@@ -13,7 +29,7 @@ export function HomePageLayout() {
           </div>
         </div>
 
-        <EnhancedPostFeed />
+        <EnhancedPostFeed queryRef={queryRef} />
       </div>
 
       <div className="w-80 p-4 space-y-4">
